@@ -64,7 +64,13 @@ uv run --with git+https://github.com/dwdcth/wechat_ocr --with protobuf python yo
 
 #### 示例
 
-完整可运行示例在 [example/](./example/) 目录, 可直接跑 (仓库目录下):
+完整可运行示例在 [example/](./example/) 目录, 附带测试图, 仓库目录下即可直接跑:
+
+| 示例 | 说明 |
+|---|---|
+| [example/1_ocr.py](example/1_ocr.py) | 基础文字识别: 回调结果结构、文本内容、置信度与位置框 |
+| [example/2_qrcode_barcode.py](example/2_qrcode_barcode.py) | 二维码识别 (解码内容 + 四角点坐标, 支持一图多码) 与条形码 (EAN-13 等数字行提取) |
+| [example/3_mosaic.py](example/3_mosaic.py) | 敏感信息打码: 内置正则 (手机号/身份证/邮箱) + 二维码区域, 三种样式 |
 
 ```bash
 uv run --with protobuf python example/1_ocr.py               # 基础文字识别
@@ -103,7 +109,7 @@ if __name__ == "__main__":
     main()
 ```
 
-二维码结果在 `r["qrcode"]` (解码内容 + 四角点坐标), 打码见 `example/3_mosaic.py`。
+二维码结果在 `r["qrcode"]` (解码内容 + 四角点坐标), 完整用法见 [example/2_qrcode_barcode.py](example/2_qrcode_barcode.py)。
 
 #### 敏感信息打码
 
@@ -137,7 +143,7 @@ img = apply_mosaic(
 img.save("masked.png")
 ```
 
-完整示例见 `example/mosaic.py`。
+完整示例见 [example/3_mosaic.py](example/3_mosaic.py), 打码前后效果: ![mosaic](./test_img/sensitive.png) → ![masked](./test_img/mosaic_demo.png)
 
 #### 运行结果
 
