@@ -1,7 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "wx-ocr-tool"
-version = "0.1.0"
+name = "wechat-ocr"
+version = "0.2.0"
+description = "使用 Python 调用微信本地 OCR 服务 (Windows / Linux / macOS, 微信 4.x 协议)"
+readme = "README.md"
 requires-python = ">=3.12"
+license = { text = "MIT" }
 dependencies = [
     "protobuf>=7.36.1",
 ]
+
+[tool.setuptools]
+packages = ["wechat_ocr"]
