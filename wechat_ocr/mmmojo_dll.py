@@ -91,8 +91,11 @@ class MmmojoDll(object):
         SetMMMojoEnvironmentCallbacks = self.func_def("SetMMMojoEnvironmentCallbacks", void, *(c_void_p, c_int, py_object))
         # void SetMMMojoEnvironmentInitParams(void* mmmojo_env,int type, ...);
         SetMMMojoEnvironmentInitParams = self.func_def("SetMMMojoEnvironmentInitParams", void, *(c_void_p, c_int, c_void_p))
-        # void AppendMMSubProcessSwitchNative(void* mmmojo_env, const char* switch_string, const wchar_t* value);
-        AppendMMSubProcessSwitchNative = self.func_def("AppendMMSubProcessSwitchNative", void, *(c_void_p, c_char_p, c_wchar_p))
+        # void AppendMMSubProcessSwitchNative(void* mmmojo_env, const char* switch_string, const wchar_t* value);  // Windows
+        # void AppendMMSubProcessSwitchNative(void* mmmojo_env, const char* switch_string, const char* value);     // Linux/macOS
+        import sys
+        _switch_value_type = c_wchar_p if sys.platform == "win32" else c_char_p
+        AppendMMSubProcessSwitchNative = self.func_def("AppendMMSubProcessSwitchNative", void, *(c_void_p, c_char_p, _switch_value_type))
         # void StartMMMojoEnvironment(void* mmmojo_env);
         StartMMMojoEnvironment = self.func_def("StartMMMojoEnvironment", void, *(c_void_p,))
         # void StopMMMojoEnvironment(void* mmmojo_env);
@@ -111,8 +114,8 @@ class MmmojoDll(object):
         GetMMMojoReadInfoSync = self.func_def("GetMMMojoReadInfoSync", c_bool, *(c_void_p,))
         # void* CreateMMMojoWriteInfo(int method, bool sync, uint32_t request_id);
         CreateMMMojoWriteInfo = self.func_def("CreateMMMojoWriteInfo",c_void_p, *(c_int, c_bool, c_uint32))
-        # void* GetMMMojoWriteInfoRequest(void* mmmojo_writeinfo, uint32_t request_data_size);
-        GetMMMojoWriteInfoRequest = self.func_def("GetMMMojoWriteInfoRequest", c_void_p, *(c_void_p, c_uint32))
+        # void* GetMMMojoWriteInfoRequest(void* mmmojo_writeinfo, size_t request_data_size);
+        GetMMMojoWriteInfoRequest = self.func_def("GetMMMojoWriteInfoRequest", c_void_p, *(c_void_p, c_size_t))
         # void RemoveMMMojoWriteInfo(void* mmmojo_writeinfo);
         RemoveMMMojoWriteInfo = self.func_def("RemoveMMMojoWriteInfo", void, *(c_void_p,))
         # void* GetMMMojoWriteInfoAttach(void* mmmojo_writeinfo,uint32_t attach_data_size);

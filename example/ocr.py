@@ -1,11 +1,8 @@
 import os
 import json
 import time
-from wechat_ocr.ocr_manager import OcrManager, OCR_MAX_TASK_ID,OCR_DEFAULT_EXE_PATH,OCR_DEFAULT_USER_LIB_DIR
+from wechat_ocr.ocr_manager import OcrManager, OCR_MAX_TASK_ID
 
-
-wechat_ocr_dir = OCR_DEFAULT_EXE_PATH
-wechat_dir = OCR_DEFAULT_USER_LIB_DIR
 
 def ocr_result_callback(img_path:str, results:dict):
     result_file = os.path.basename(img_path) + ".json"
@@ -14,25 +11,29 @@ def ocr_result_callback(img_path:str, results:dict):
        f.write(json.dumps(results, ensure_ascii=False, indent=2))
 
 def main():
-    ocr_manager = OcrManager(wechat_dir)
-    # 设置WeChatOcr目录
-    ocr_manager.SetExePath(wechat_ocr_dir)
-    # 设置微信所在路径
-    ocr_manager.SetUsrLibDir(wechat_dir)
+    # 微信路径解析顺序: 显式传参 > 环境变量 > 配置文件 > 常见路径自动探测
+    #   - Windows: OcrManager(r"C:\Program Files\Tencent\WeChat")
+    #   - Linux:   OcrManager("/opt/wechat-universal")
+    #   - macOS:   OcrManager("/Applications/WeChat.app")
+    ocr_manager = OcrManager()
+    # 可选: 手动指定 OCR 可执行文件路径 (一般无需调用, 自动探测即可)
+    # ocr_manager.SetExePath("/opt/wechat-universal/wxocr")
+    # 可选: 手动指定微信所在路径 (作为 user-lib-dir 传给子进程)
+    # ocr_manager.SetUsrLibDir("/opt/wechat-universal")
     # 设置ocr识别结果的回调函数
     ocr_manager.SetOcrResultCallback(ocr_result_callback)
     # 启动ocr服务
     ocr_manager.StartWeChatOCR()
     # 开始识别图片
-    ocr_manager.DoOCRTask(r"..\test_img\1.png")
-    ocr_manager.DoOCRTask(r"..\test_img\2.png")
-    ocr_manager.DoOCRTask(r"..\test_img\3.png")
-    time.sleep(1)
+    test_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "test_img")
+    for name in sorted(os.listdir(test_dir)):
+        ocr_manager.DoOCRTask(os.path.join(test_dir, name))
+    # 等待全部任务完成
     while ocr_manager.m_task_id.qsize() != OCR_MAX_TASK_ID:
-        pass
+        time.sleep(0.1)
     # 识别输出结果
     ocr_manager.KillWeChatOCR()
-    
+
 
 if __name__ == "__main__":
     main()
