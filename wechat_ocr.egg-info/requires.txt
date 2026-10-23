@@ -1,0 +1,4 @@
+protobuf>=7.36.1
+
+[mosaic]
+pillow>=9.0

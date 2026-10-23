@@ -13,5 +13,9 @@ dependencies = [
     "protobuf>=7.36.1",
 ]
 
+[project.optional-dependencies]
+# 打码功能 (wechat_ocr.mosaic) 需要 Pillow
+mosaic = ["pillow>=9.0"]
+
 [tool.setuptools]
 packages = ["wechat_ocr"]

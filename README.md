@@ -3,7 +3,7 @@
 
 **现已支持跨平台**: Windows / Linux / macOS (统一使用微信 4.x 协议)。
 
-**支持能力**: 文字识别 (OCR) + 二维码识别 (内容与角点坐标)。
+**支持能力**: 文字识别 (OCR) + 二维码识别 (内容与角点坐标) + 敏感信息打码。
 
 #### 温馨提示
 
@@ -102,6 +102,40 @@ if __name__ == "__main__":
     main()
 ```
 
+#### 敏感信息打码
+
+基于识别结果对手机号 / 身份证 / 邮箱 / 二维码等区域自动打码 (纯 Pillow 实现):
+
+```bash
+# 安装 (含打码依赖 Pillow)
+pip install "wechat-ocr[mosaic] @ git+https://github.com/dwdcth/wechat_ocr.git"
+```
+
+```python
+import time
+from wechat_ocr.ocr_manager import OcrManager, OCR_MAX_TASK_ID
+from wechat_ocr.mosaic import apply_mosaic
+
+results = {}
+ocr_manager = OcrManager()
+ocr_manager.SetOcrResultCallback(lambda p, r: results.update(r))
+ocr_manager.StartWeChatOCR()
+ocr_manager.DoOCRTask("screenshot.png")
+while ocr_manager.m_task_id.qsize() != OCR_MAX_TASK_ID:
+    time.sleep(0.1)
+ocr_manager.KillWeChatOCR()
+
+img = apply_mosaic(
+    "screenshot.png", results,
+    patterns="default",   # 内置正则: 手机号/身份证/邮箱; 也可传自定义正则列表
+    qrcode=True,          # 二维码区域一并打掉
+    style="pixel",        # pixel 马赛克 | blur 高斯模糊 | solid 纯色
+)
+img.save("masked.png")
+```
+
+完整示例见 `example/mosaic.py`。
+
 #### 运行结果
 
 ![result](./result.png)
@@ -138,6 +172,7 @@ if __name__ == "__main__":
 
 说明:
 - `ocrResult`: 文字识别结果; 条形码 (EAN-13 等) 的数字也会作为文本行出现在这里
+- 识别文本中 OCR 偶有漏字 (如身份证末位), 打码区域按整行文本框处理, 不影响遮盖效果
 - `qrcode`: 二维码识别结果, 仅当图片中含二维码时返回; `type=19` 为 QR_CODE,
   `corners` 为四个角点像素坐标, 可用于打码/贴图处理
 - 一张图可同时返回文字与多个二维码
