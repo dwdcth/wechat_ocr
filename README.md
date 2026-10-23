@@ -3,6 +3,8 @@
 
 **现已支持跨平台**: Windows / Linux / macOS (统一使用微信 4.x 协议)。
 
+**支持能力**: 文字识别 (OCR) + 二维码识别 (内容与角点坐标)。
+
 #### 温馨提示
 
 该项目自己玩玩就行，不要用于商业用途
@@ -101,12 +103,31 @@ if __name__ == "__main__":
       "rate": 0.99,
       "location": {"left": 8.0, "top": 18.0, "right": 202.0, "bottom": 52.0}
     }
+  ],
+  "qrcode": [
+    {
+      "text": "https://github.com/dwdcth",
+      "type": 19,
+      "corners": {
+        "topleft": {"x": 33.0, "y": 34.0},
+        "topright": {"x": 247.0, "y": 34.0},
+        "bottomright": {"x": 247.0, "y": 248.0},
+        "bottomleft": {"x": 33.0, "y": 248.0}
+      }
+    }
   ]
 }
 ```
 
+说明:
+- `ocrResult`: 文字识别结果; 条形码 (EAN-13 等) 的数字也会作为文本行出现在这里
+- `qrcode`: 二维码识别结果, 仅当图片中含二维码时返回; `type=19` 为 QR_CODE,
+  `corners` 为四个角点像素坐标, 可用于打码/贴图处理
+- 一张图可同时返回文字与多个二维码
+
 > 注: 本版本统一使用微信 4.x 的 `ParseOCRReqMessage/ParseOCRRespMessage` 协议
 > (request id: 10010/10011), 不再支持微信 3.x 的旧协议。
+> 请求中的 `pic_data` 字段实测无法单独使用 (返回 err=4), 请始终使用 `pic_path` 传图片绝对路径。
 
 ## 感谢
 

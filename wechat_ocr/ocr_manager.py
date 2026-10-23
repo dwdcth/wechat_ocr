@@ -139,28 +139,43 @@ class OcrManager(XPluginManager):
 
         结构与旧版 (3.x) 保持基本一致, 方便下游代码迁移:
             {"taskId", "errcode", "width", "height",
-             "ocrResult": [{"text", "rate", "location": {"left","top","right","bottom"}}]}
+             "ocrResult": [{"text", "rate", "location": {"left","top","right","bottom"}}],
+             "qrcode": [{"text", "type", "corners": {...}}]}   # 图片含二维码时才有
+        条形码 (EAN 等) 的数字会作为普通文本行出现在 ocrResult 中。
         """
         results = {
             "taskId": ocr_response.task_id,
             "errcode": ocr_response.err_code,
             "ocrResult": []
         }
-        if not ocr_response.HasField("res"):
-            return results
-        results["width"] = ocr_response.res.img_width
-        results["height"] = ocr_response.res.img_height
-        for line in ocr_response.res.lines:
-            results["ocrResult"].append({
-                "text": line.text,
-                "rate": line.rate,
-                "location": {
-                    "left": line.left,
-                    "top": line.top,
-                    "right": line.right,
-                    "bottom": line.bottom,
-                },
-            })
+        if ocr_response.HasField("res"):
+            results["width"] = ocr_response.res.img_width
+            results["height"] = ocr_response.res.img_height
+            for line in ocr_response.res.lines:
+                results["ocrResult"].append({
+                    "text": line.text,
+                    "rate": line.rate,
+                    "location": {
+                        "left": line.left,
+                        "top": line.top,
+                        "right": line.right,
+                        "bottom": line.bottom,
+                    },
+                })
+        if ocr_response.HasField("qrcode"):
+            qrs = []
+            for qr in ocr_response.qrcode.results:
+                qrs.append({
+                    "text": qr.text,
+                    "type": qr.type,      # 码类型: QR_CODE = 19
+                    "corners": {
+                        "topleft": {"x": qr.corners.topleft.x, "y": qr.corners.topleft.y},
+                        "topright": {"x": qr.corners.topright.x, "y": qr.corners.topright.y},
+                        "bottomright": {"x": qr.corners.bottomright.x, "y": qr.corners.bottomright.y},
+                        "bottomleft": {"x": qr.corners.bottomleft.x, "y": qr.corners.bottomleft.y},
+                    },
+                })
+            results["qrcode"] = qrs
         return results
 
     def GetIdleTaskId(self):

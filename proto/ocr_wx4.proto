@@ -17,8 +17,31 @@ message ParseOCRReqMessage {
 	optional string pic_path = 2;
 	optional uint32 xx3 = 3;
 	optional uint32 xx4 = 4;
-	optional bytes pic_data = 5;
+	optional bytes pic_data = 5;      // 实测: 单独使用会返回 err=4, 需未知伴随字段, 请用 pic_path
 	optional ReqType rt = 6;
+}
+
+message QRPoint {
+	optional float x = 1;
+	optional float y = 2;
+}
+
+message QRCorners {
+	optional QRPoint topleft = 1;
+	optional QRPoint topright = 2;
+	optional QRPoint bottomright = 3;
+	optional QRPoint bottomleft = 4;
+}
+
+message QRCodeResult {
+	optional QRCorners corners = 1;
+	optional string text = 2;         // 二维码解码内容 (URL/文本)
+	optional uint32 type = 3;         // 码类型 (实测 QR_CODE = 19)
+	optional uint32 unknown4 = 4;
+}
+
+message QRResultInfo {
+	repeated QRCodeResult results = 1;
 }
 
 message OCRResultInfo {
@@ -29,16 +52,11 @@ message OCRResultInfo {
 	optional uint64 time_used = 7;
 }
 
-message QRResultInfo {
-}
-message MMFGResultInfo {
-}
-
 message ParseOCRRespMessage {
 	optional uint64 task_id = 1;
 	optional int32 err_code = 2;
 	optional OCRResultInfo res = 3;
 	optional ReqType rt = 4;
-	optional bytes qrcode = 5; // ��ά��ʶ��
-	optional bytes mmfg = 6; // what is mmfg?
+	optional QRResultInfo qrcode = 5; // 二维码识别结果 (含角点坐标与解码文本)
+	optional bytes mmfg = 6;          // 含义未确认, 常规调用为空
 }
