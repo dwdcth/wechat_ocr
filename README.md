@@ -12,7 +12,24 @@
 ## 使用说明
 
 #### 安装
-`pip install wechat-ocr`
+
+本项目未发布到 PyPI, 请直接从 GitHub 安装:
+
+```bash
+# pip
+pip install git+https://github.com/dwdcth/wechat_ocr.git
+# 或 uv
+uv pip install git+https://github.com/dwdcth/wechat_ocr.git
+# 或作为项目依赖 (pyproject.toml)
+#   dependencies = ["wechat-ocr @ git+https://github.com/dwdcth/wechat_ocr.git"]
+uv add git+https://github.com/dwdcth/wechat_ocr
+```
+
+也可以不安装直接运行:
+
+```bash
+uv run --with git+https://github.com/dwdcth/wechat_ocr --with protobuf python your_script.py
+```
 
 #### 依赖(必要条件)
 
