@@ -64,18 +64,26 @@ uv run --with git+https://github.com/dwdcth/wechat_ocr --with protobuf python yo
 
 #### 示例
 
+完整可运行示例在 [example/](./example/) 目录, 可直接跑 (仓库目录下):
+
+```bash
+uv run --with protobuf python example/1_ocr.py               # 基础文字识别
+uv run --with protobuf python example/2_qrcode_barcode.py    # 二维码 / 条形码
+uv run --with protobuf --with pillow python example/3_mosaic.py  # 敏感信息打码
+```
+
+最简用法:
+
 ```python
-import os
-import json
 import time
 from wechat_ocr.ocr_manager import OcrManager, OCR_MAX_TASK_ID
 
+results = {}
 
-def ocr_result_callback(img_path:str, results:dict):
-    result_file = os.path.basename(img_path) + ".json"
-    print(f"识别成功，img_path: {img_path}, result_file: {result_file}")
-    with open(result_file, 'w', encoding='utf-8') as f:
-       f.write(json.dumps(results, ensure_ascii=False, indent=2))
+def ocr_result_callback(img_path: str, r: dict):
+    results[img_path] = r
+    for item in r.get("ocrResult", []):
+        print(item["text"])          # 文字 (条形码数字也在这里)
 
 def main():
     # 微信路径解析顺序: 显式传参 > 环境变量 > 配置文件 > 自动探测
@@ -83,24 +91,19 @@ def main():
     #   - Linux:   OcrManager("/opt/wechat-universal")
     #   - macOS:   OcrManager("/Applications/WeChat.app")
     ocr_manager = OcrManager()
-    # 设置ocr识别结果的回调函数
     ocr_manager.SetOcrResultCallback(ocr_result_callback)
-    # 启动ocr服务
     ocr_manager.StartWeChatOCR()
-    # 开始识别图片
     ocr_manager.DoOCRTask("test_img/1.png")
-    ocr_manager.DoOCRTask("test_img/2.png")
-    ocr_manager.DoOCRTask("test_img/3.png")
-    # 等待全部任务完成
     while ocr_manager.m_task_id.qsize() != OCR_MAX_TASK_ID:
         time.sleep(0.1)
-    # 识别输出结果
     ocr_manager.KillWeChatOCR()
 
 
 if __name__ == "__main__":
     main()
 ```
+
+二维码结果在 `r["qrcode"]` (解码内容 + 四角点坐标), 打码见 `example/3_mosaic.py`。
 
 #### 敏感信息打码
 
