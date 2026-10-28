@@ -280,5 +280,5 @@ img.save("masked.png")
 
 ## 感谢
 
-https://github.com/EEEEhex/QQImpl
-https://github.com/swigger/wechat-ocr (Linux/macOS 协议参考)
+- https://github.com/EEEEhex/QQImpl
+- https://github.com/swigger/wechat-ocr (Linux/macOS 协议参考)
