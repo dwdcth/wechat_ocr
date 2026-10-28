@@ -15,10 +15,30 @@ message ReqType {
 message ParseOCRReqMessage {
 	optional uint64 task_id = 1;
 	optional string pic_path = 2;
-	optional uint32 xx3 = 3;
-	optional uint32 xx4 = 4;
-	optional bytes pic_data = 5;      // 实测: 单独使用会返回 err=4, 需未知伴随字段, 请用 pic_path
+	optional uint32 xx3 = 3;      // 死字段: 处理器不读取
+	optional uint32 xx4 = 4;      // 死字段: 处理器不读取
+	optional bytes pic_data = 5;  // 死字段: 处理器不读取 (见下)
 	optional ReqType rt = 6;
+}
+
+// pic_data/xx3/xx4 逆向结论 (libwxocr.so 4.1.13, IDA 反编译 10010 处理器):
+//   处理器流程 = ParseFromArray → 仅提取 pic_path → open(path,33) →
+//   size<0 → err=4; 短读 → err=5; 成功 → 解码入 OCR 管线。
+//   pic_data 从未被访问: 带路径时填了也被无视 (实测 path=A/data=B 返回 A);
+//   无路径时 open 失败直接 err=4。微信自身截图 OCR 亦无 bytes 后门。
+//   bytes 需求走 DoOCRTaskShared (零拷贝 Shared 通路, 见下) 或
+//   DoOCRTaskData (临时文件; Linux /tmp 为 tmpfs, 等效内存传送)。
+
+// 零拷贝通路 (逆向微信主程序发送方 + wxocr 处理器, 4.1.13 实测):
+//   method = kMMShared(4), request_id = 10018 (REQ_OCR_SHARED)
+//   request 缓冲区 = RGBA8888 原始像素 (width*height*4)
+//   attach  缓冲区 = 本消息 (手写 pb, 见 ocr_manager.shared_ocr_meta_pb)
+//   响应仍是 10011 ParseOCRRespMessage, task_id 恒为 0
+message ParseOCRReqSharedMessage {
+	optional string pic_path = 1;   // 可空 (实测留空)
+	optional uint32 width = 2;      // 图片宽 (像素)
+	optional uint32 height = 3;     // 图片高 (像素)
+	optional ReqType rt = 4;        // t1=t2=true, 同路径版
 }
 
 message QRPoint {

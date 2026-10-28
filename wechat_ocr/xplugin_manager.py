@@ -77,14 +77,7 @@ class RequestIdPlayer(Enum):
 
 
 class XPluginManager(object):
-    m_cb_usrdata:py_object
-    m_ocr_exe_path:str
-    m_switch_native: Dict[str, str] = {}
-    m_cmdline: List[str] = []
-    m_mmmojo_env_ptr: c_void_p = c_void_p(None)
-    m_init_mmmojo_env = False
-    m_callbacks: Dict[str, Callable] = {}
-
+    # 成员状态一律实例属性（类属性会跨实例共享，二次实例化即污染/死锁）
     def __init__(self, wechat_path=None) -> None:
         # 微信路径解析顺序: 显式传参 > 环境变量 > 配置文件 > 常见路径自动探测
         paths = resolve(wechat_dir=wechat_path)
@@ -94,6 +87,11 @@ class XPluginManager(object):
         self.m_cb_usrdata = self
         # 增加callback的引用计数，防止被垃圾回收机制处理
         self._callbacks_refer = {}
+        self.m_switch_native: Dict[str, str] = {}
+        self.m_cmdline: List[str] = []
+        self.m_mmmojo_env_ptr: c_void_p = c_void_p(None)
+        self.m_init_mmmojo_env = False
+        self.m_callbacks: Dict[str, Callable] = {}
 
     def __del__(self):
         if self.m_init_mmmojo_env:
@@ -183,6 +181,19 @@ class XPluginManager(object):
         write_info:c_void_p = self._dll.CreateMMMojoWriteInfo(c_int(method), c_bool(sync), c_uint32(request_id))
         request:c_void_p = self._dll.GetMMMojoWriteInfoRequest(write_info, pb_size)
         memmove(request, pb_data, pb_size)
+        self._dll.SendMMMojoWriteInfo(self.m_mmmojo_env_ptr, write_info)
+
+    def SendBuffersWithAttach(self, request_buf:bytes, attach_buf:bytes, method:int, sync:bool, request_id:int) -> None:
+        """发送 双缓冲区消息: request 缓冲区 + attach 附加缓冲区 (kMMShared 通路用)。
+
+        微信自身传图走此通路 (如 wxocr 零拷贝 OCR): 主数据放 request 缓冲区,
+        元数据 pb 放 attach 缓冲区, method=kMMShared(4)。
+        """
+        write_info = self._dll.CreateMMMojoWriteInfo(c_int(method), c_bool(sync), c_uint32(request_id))
+        attach_ptr = self._dll.GetMMMojoWriteInfoAttach(write_info, len(attach_buf))
+        memmove(attach_ptr, create_string_buffer(attach_buf, len(attach_buf)), len(attach_buf))
+        request_ptr = self._dll.GetMMMojoWriteInfoRequest(write_info, len(request_buf))
+        memmove(request_ptr, create_string_buffer(request_buf, len(request_buf)), len(request_buf))
         self._dll.SendMMMojoWriteInfo(self.m_mmmojo_env_ptr, write_info)
 
     def GetPbSerializedData(self, request_info:c_void_p, data_size:c_uint32) -> c_void_p:
