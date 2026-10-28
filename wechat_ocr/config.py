@@ -20,6 +20,8 @@
 import glob
 import json
 import os
+import re
+import struct
 import sys
 
 APP_NAME = "wechat_ocr"
@@ -179,3 +181,57 @@ def resolve(wechat_dir=None, ocr_exe_path=None, mmmojo_path=None):
         "mmmojo_path": os.path.abspath(mmmojo_path),
         "source": source,
     }
+
+
+def detect_wechat_version(wechat_dir=None) -> "str | None":
+    """尽力探测已安装微信的版本号 (如 '4.1.13.26'), 失败返回 None。
+
+    - Windows: 读 wechat.dll / WeChatWin.dll 的文件版本资源
+    - macOS:   读 WeChat.app/Contents/Info.plist
+    - Linux:   扫描 wechat 主程序内嵌的 x.y.z.w 明文版本串 (取出现最多的 4.x)
+
+    仅用于诊断/协议兼容提示 (配合 tools/verify_protocol.py), 不参与路径解析。
+    """
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            root = wechat_dir or resolve().get("wechat_dir") or ""
+            for dll in ("wechat.dll", "WeChatWin.dll"):
+                p = os.path.join(root, dll)
+                if not os.path.isfile(p):
+                    continue
+                size = ctypes.windll.version.GetFileVersionInfoSizeW(p, None)
+                if not size:
+                    continue
+                data = ctypes.create_string_buffer(size)
+                if not ctypes.windll.version.GetFileVersionInfoW(p, 0, size, data):
+                    continue
+                val = ctypes.c_void_p()
+                ln = ctypes.c_uint()
+                if ctypes.windll.version.VerQueryValueW(
+                        data, "\\VarFileInfo\\Translation", ctypes.byref(val), ctypes.byref(ln)) and ln.value:
+                    lang, cp = struct.unpack("<HH", ctypes.string_at(val.value, 4))
+                    sub = rf"\StringFileInfo\{lang:04X}{cp:04X}\ProductVersion"
+                    if ctypes.windll.version.VerQueryValueW(
+                            data, sub, ctypes.byref(val), ctypes.byref(ln)) and ln.value:
+                        return ctypes.wstring_at(val.value, ln.value - 1).strip()
+            return None
+        if sys.platform == "darwin":
+            import plistlib
+            app = wechat_dir or "/Applications/WeChat.app"
+            with open(os.path.join(app, "Contents", "Info.plist"), "rb") as f:
+                return plistlib.load(f).get("CFBundleShortVersionString")
+        # Linux: 主程序内嵌明文版本串, 取出现次数最多的 4.x.y.z
+        root = wechat_dir or resolve().get("wechat_dir") or ""
+        exe = os.path.join(root, "wechat") if os.path.isdir(root) else root
+        if not os.path.isfile(exe):
+            return None
+        from collections import Counter
+        pat = re.compile(rb"\b4\.\d{1,2}\.\d{1,3}\.\d{1,4}\b")
+        counter = Counter()
+        with open(exe, "rb") as f:
+            for chunk in iter(lambda: f.read(8 << 20), b""):
+                counter.update(pat.findall(chunk))
+        return counter.most_common(1)[0][0].decode() if counter else None
+    except Exception:
+        return None
